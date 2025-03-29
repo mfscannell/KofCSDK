@@ -1,0 +1,10 @@
+**/node_modules
+**/.vs
+**/bin
+**/obj
+**/logs
+**/coveragereport
+
+*.bak
+
+LexOrandi.KofC.API/websiteResources
