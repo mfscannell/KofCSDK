@@ -18,17 +18,14 @@ public class KofCV1Client : IKofCV1Client
             new JsonStringEnumConverter()
         }
     };
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly string _httpClientName;
+    private readonly HttpClient _httpClient;
 
     public KofCV1Client(
         IOptionsMonitor<KofCApiConfig> kofcApiConfig,
-        IHttpClientFactory httpClientFactory,
-        string httpClientName)
+        HttpClient httpClient)
     {
         _kofcApiConfig = kofcApiConfig.CurrentValue;
-        _httpClientFactory = httpClientFactory;
-        _httpClientName = httpClientName;
+        _httpClient = httpClient;
     }
 
     public async Task<Result<LoginResponse>> LoginAsync(
@@ -43,8 +40,7 @@ public class KofCV1Client : IKofCV1Client
             {
                 httpRequest.Content = content;
 
-                using (var httpClient = _httpClientFactory.CreateClient(_httpClientName))
-                using (var httpResponseMesage = await httpClient.SendAsync(httpRequest, cancellationToken))
+                using (var httpResponseMesage = await _httpClient.SendAsync(httpRequest, cancellationToken))
                 {
                     return await ProcessResponse<LoginResponse>(httpResponseMesage);
                 }
@@ -53,6 +49,29 @@ public class KofCV1Client : IKofCV1Client
         catch (Exception exception)
         {
             return HandleError<LoginResponse>(exception);
+        }
+    }
+
+    public async Task<Result<PasswordRequirements>> GetPasswordRequirementsAsync(
+        TenantInfo tenantInfo,
+        UserAuthentication userAuthentication,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using (var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"api/{tenantInfo.TenantId}/accounts/passwordRequirements"))
+            {
+                SetAuthorizationHeader(httpRequest, userAuthentication.WebToken);
+
+                using (var httpResponseMesage = await _httpClient.SendAsync(httpRequest, cancellationToken))
+                {
+                    return await ProcessResponse<PasswordRequirements>(httpResponseMesage);
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            return HandleError<PasswordRequirements>(exception);
         }
     }
 
@@ -67,8 +86,7 @@ public class KofCV1Client : IKofCV1Client
             {
                 SetAuthorizationHeader(httpRequest, userAuthentication.WebToken);
 
-                using (var httpClient = _httpClientFactory.CreateClient(_httpClientName))
-                using (var httpResponseMesage = await httpClient.SendAsync(httpRequest, cancellationToken))
+                using (var httpResponseMesage = await _httpClient.SendAsync(httpRequest, cancellationToken))
                 {
                     return await ProcessResponse<List<Activity>>(httpResponseMesage);
                 }
